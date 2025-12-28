@@ -65,6 +65,9 @@ export function createGridUI({
         paintWallValue = currentlyWall ? 0 : 1;
         st.grid[r][c] = paintWallValue;
 
+        // IMPORTANT: clear result overlays when walls change
+        onGridChanged();
+
         renderCell({ el: cellEls[r][c], r, c, grid: st.grid, start: st.start, goal: st.goal });
       });
 
@@ -77,6 +80,10 @@ export function createGridUI({
         if (sameCell({ r, c }, st.start) || sameCell({ r, c }, st.goal)) return;
 
         st.grid[r][c] = paintWallValue;
+
+        // IMPORTANT: clear result overlays when walls change
+        onGridChanged();
+
         renderCell({ el: cellEls[r][c], r, c, grid: st.grid, start: st.start, goal: st.goal });
       });
 
@@ -88,6 +95,29 @@ export function createGridUI({
   window.addEventListener("mouseup", () => {
     mouseDown = false;
   });
+
+  return { cellEls };
+}
+
+/**
+ * Read-only grid (no mouse handlers) for Dijkstra/A* panels.
+ */
+export function createGridDisplay({ gridEl, rows, cols }) {
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, var(--cell))`;
+
+  const cellEls = Array.from({ length: rows }, () => Array(cols).fill(null));
+  gridEl.innerHTML = "";
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.r = String(r);
+      cell.dataset.c = String(c);
+      gridEl.appendChild(cell);
+      cellEls[r][c] = cell;
+    }
+  }
 
   return { cellEls };
 }

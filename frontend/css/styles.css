@@ -15,12 +15,15 @@
 }
 
 * { box-sizing: border-box; }
+
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
   background: var(--bg);
   color: var(--text);
 }
+
+/* ================= TOP BAR ================= */
 
 .topbar {
   display: flex;
@@ -31,9 +34,21 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-h1 { margin: 0; font-size: 18px; }
-.hint { margin-top: 6px; font-size: 13px; opacity: 0.9; }
-.keys { opacity: 0.75; margin-left: 10px; }
+h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.keys {
+  opacity: 0.75;
+  margin-left: 10px;
+}
 
 .badge {
   display: inline-block;
@@ -58,7 +73,11 @@ button {
   color: var(--text);
   cursor: pointer;
 }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .control {
   display: flex;
@@ -68,8 +87,35 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   opacity: 0.9;
 }
 
-main { padding: 16px; }
+/* ================= MAIN / GRIDS ================= */
 
+main {
+  padding: 16px;
+}
+
+/* Container for 3 grids */
+.compareWrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+/* Individual grid panel */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panelTitle {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+  text-align: center;
+}
+
+/* Base grid */
 .grid {
   display: grid;
   gap: var(--gap);
@@ -78,6 +124,7 @@ main { padding: 16px; }
   margin: 0 auto;
 }
 
+/* Cells */
 .cell {
   width: var(--cell);
   height: var(--cell);
@@ -86,11 +133,26 @@ main { padding: 16px; }
   outline: 1px solid rgba(255,255,255,0.05);
 }
 
-.cell.wall { background: var(--wall); }
-.cell.start { background: var(--start); }
-.cell.goal { background: var(--goal); }
-.cell.visited { background: var(--visited); }
-.cell.path { background: var(--path); }
+/* Cell states */
+.cell.wall   { background: var(--wall); }
+.cell.start  { background: var(--start); }
+.cell.goal   { background: var(--goal); }
+.cell.visited{ background: var(--visited); }
+.cell.path   { background: var(--path); }
+
+/* ================= RESULT GRID SCALING ================= */
+/* Make Dijkstra + A* slightly smaller so 3 grids fit nicely */
+
+#gridDijkstra,
+#gridAstar {
+  --cell: 14px;
+}
+
+#grid {
+  --cell: 14px;
+}
+
+/* ================= STATUS BAR ================= */
 
 .statusbar {
   padding: 10px 16px;

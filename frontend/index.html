@@ -13,12 +13,14 @@
       <div class="hint">
         Mode:
         <span id="modeBadge" class="badge">WALL</span>
-        <span class="keys">[W]=walls [S]=start [G]=goal [Space]=run [C]=clear</span>
+        <span class="keys">[W]=walls [S]=start [G]=goal [Space]=run (Dijkstra) [C]=clear</span>
       </div>
     </div>
 
     <div class="right">
       <button id="runBtn">Run (Dijkstra)</button>
+      <button id="runAstarBtn">Run (A*)</button>
+      <button id="compareBtn">Compare</button>
       <button id="clearBtn">Clear</button>
 
       <label class="control">
@@ -29,14 +31,28 @@
   </header>
 
   <main>
-    <div id="grid" class="grid" aria-label="grid"></div>
+    <div class="compareWrap">
+      <section class="panel">
+        <div class="panelTitle">Editor</div>
+        <div id="grid" class="grid" aria-label="grid editor"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panelTitle">Dijkstra</div>
+        <div id="gridDijkstra" class="grid" aria-label="grid dijkstra"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panelTitle">A*</div>
+        <div id="gridAstar" class="grid" aria-label="grid astar"></div>
+      </section>
+    </div>
   </main>
 
   <footer class="statusbar">
     <span id="status">Ready.</span>
   </footer>
 
-  <!-- IMPORTANT: ES modules -->
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

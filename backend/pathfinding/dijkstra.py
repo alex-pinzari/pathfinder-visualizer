@@ -24,41 +24,34 @@ def reconstruct_path(came_from: Dict[Coord, Coord], start: Coord, goal: Coord) -
 
 
 def dijkstra(grid: Grid, start: Coord, goal: Coord):
-    """
-    Classic Dijkstra on a grid with cost 1 per move.
-
-    Returns:
-        path: list of coords (r, c) from start to goal
-        visited_order: list of coords in the order they were popped from the queue
-                       (useful for visualization)
-    """
-    # Distance from start to this node
     dist: Dict[Coord, int] = {start: 0}
-    # For reconstructing path
     came_from: Dict[Coord, Coord] = {}
-    # For visualization (the order in which cells are processed)
     visited_order: List[Coord] = []
 
-    # Priority queue of (distance_so_far, node)
     pq: List[Tuple[int, Coord]] = []
     heapq.heappush(pq, (0, start))
 
+    processed = set()  # nodes we already finalized (for clean visualization)
+
     while pq:
         current_dist, current = heapq.heappop(pq)
+
+        # skip outdated entries
+        if current_dist != dist.get(current, None):
+            continue
+
+        # log only once
+        if current in processed:
+            continue
+        processed.add(current)
         visited_order.append(current)
 
-        # If we've reached the goal, we can stop
         if current == goal:
             break
 
-        # If this entry is outdated, skip it
-        if current_dist > dist[current]:
-            continue
-
-        # Explore neighbors
         for neighbor in grid.neighbors(current):
-            new_dist = current_dist + 1  # each move costs 1
-            if neighbor not in dist or new_dist < dist[neighbor]:
+            new_dist = current_dist + 1
+            if new_dist < dist.get(neighbor, 10**18):
                 dist[neighbor] = new_dist
                 came_from[neighbor] = current
                 heapq.heappush(pq, (new_dist, neighbor))
