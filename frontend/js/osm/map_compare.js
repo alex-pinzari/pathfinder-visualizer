@@ -1,3 +1,4 @@
+// frontend/js/osm/map_compare.js
 const statusEl = document.getElementById("metrics");
 const placeEl = document.getElementById("place");
 const showVisitedEl = document.getElementById("showVisited");
@@ -15,7 +16,7 @@ const PATH_STYLE = {
 const EXPLORE_STYLE_SOLID = {
   color: "#0050ff", // strong blue
   weight: 3,
-  opacity: 0.7,
+  opacity: 0.85,
   lineCap: "round",
 };
 
@@ -107,19 +108,24 @@ async function postJSON(url, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
 function drawPath(map, pathLatLon) {
-  const latlngs = (pathLatLon || []).map(p => [p[0], p[1]]);
+  const latlngs = (pathLatLon || []).map((p) => [p[0], p[1]]);
+  if (!latlngs.length) return null;
   return L.polyline(latlngs, PATH_STYLE).addTo(map);
 }
 
 function animateExploredEdges(map, segments, dashed, onDone) {
   const segs = segments || [];
   const group = L.layerGroup().addTo(map);
-  const style = EXPLORE_STYLE_SOLID;
+  const style = dashed ? EXPLORE_STYLE_DASHED : EXPLORE_STYLE_SOLID;
+
   let i = 0;
   const batch = parseInt(speedEl?.value || "1200", 10);
 
@@ -132,6 +138,22 @@ function animateExploredEdges(map, segments, dashed, onDone) {
     else onDone?.(group);
   }
   step();
+}
+
+function pctBetter(a, b) {
+  // "a is better than b by X%" => (b - a) / b
+  if (!isFinite(a) || !isFinite(b) || b <= 0) return null;
+  return ((b - a) / b) * 100.0;
+}
+
+function fmtPct(x) {
+  if (x == null) return "n/a";
+  const sign = x >= 0 ? "" : "-";
+  return `${sign}${Math.abs(x).toFixed(0)}%`;
+}
+
+function fmtInt(n) {
+  return (n ?? 0).toLocaleString();
 }
 
 document.getElementById("compareBtn").addEventListener("click", async () => {
@@ -148,35 +170,70 @@ document.getElementById("compareBtn").addEventListener("click", async () => {
     goal: [g.lat, g.lng],
   };
 
+  try {
+    setStatus("Routing...");
+    const data = await postJSON("/osm/route/compare", payload);
 
-  setStatus("Routing...");
-  const data = await postJSON("/osm/route/compare", payload);
+    const d = data.dijkstra;
+    const a = data.astar;
+    const meta = data.meta || {};
 
-  const d = data.dijkstra;
-  const a = data.astar;
+    // Safety
+    if (!d || !a) {
+      setStatus("Bad response from backend (missing dijkstra/astar).");
+      return;
+    }
 
-  if (showVisitedEl.checked) {
-    animateExploredEdges(mapLeft, d.explored_edges, false, (l) => {
-      exploredLayerL = l;
-      animateExploredEdges(mapRight, a.explored_edges, true, (r) => {
-        exploredLayerR = r;
-        pathLineL = drawPath(mapLeft, d.path);
-        pathLineR = drawPath(mapRight, a.path);
-        pathLineL.bringToFront();
-        pathLineR.bringToFront();
+    // If no path found: show message and don't try to draw empty layers
+    if (!d.found || !a.found) {
+      setStatus("No route found between the selected points.");
+      return;
+    }
+
+    if (showVisitedEl.checked) {
+      animateExploredEdges(mapLeft, d.explored_edges, false, (l) => {
+        exploredLayerL = l;
+        animateExploredEdges(mapRight, a.explored_edges, false, (r) => {
+          exploredLayerR = r;
+
+          pathLineL = drawPath(mapLeft, d.path);
+          pathLineR = drawPath(mapRight, a.path);
+          if (pathLineL) pathLineL.bringToFront();
+          if (pathLineR) pathLineR.bringToFront();
+        });
       });
-    });
-  } else {
-    pathLineL = drawPath(mapLeft, d.path);
-    pathLineR = drawPath(mapRight, a.path);
-    pathLineL.bringToFront();
-    pathLineR.bringToFront();
-  }
+    } else {
+      pathLineL = drawPath(mapLeft, d.path);
+      pathLineR = drawPath(mapRight, a.path);
+      if (pathLineL) pathLineL.bringToFront();
+      if (pathLineR) pathLineR.bringToFront();
+    }
 
-  setStatus(
-    `Dijkstra: ${d.distance_m.toFixed(0)}m, ${d.runtime_ms.toFixed(1)}ms | ` +
-    `A*: ${a.distance_m.toFixed(0)}m, ${a.runtime_ms.toFixed(1)}ms`
-  );
+    // --- Compute comparison metrics ---
+    const rtGain = pctBetter(a.runtime_ms, d.runtime_ms);
+    const visitedGain = pctBetter(a.visited_count, d.visited_count);
+    const relaxGain = pctBetter(a.explored_edges_count, d.explored_edges_count);
+
+    // --- Better status string (this is your CV proof) ---
+    const graphInfo =
+      meta.graph_nodes_count && meta.graph_edges_count
+        ? `Graph: ${fmtInt(meta.graph_nodes_count)} nodes, ${fmtInt(meta.graph_edges_count)} edges | `
+        : "";
+
+    setStatus(
+      graphInfo +
+      `Dijkstra: ${d.distance_m.toFixed(0)}m, ${d.runtime_ms.toFixed(1)}ms, ` +
+      `visited ${fmtInt(d.visited_count)}, relax ${fmtInt(d.explored_edges_count)} | ` +
+      `A*: ${a.distance_m.toFixed(0)}m, ${a.runtime_ms.toFixed(1)}ms, ` +
+      `visited ${fmtInt(a.visited_count)}, relax ${fmtInt(a.explored_edges_count)} | ` +
+      `A* better: time ${fmtPct(rtGain)}, visited ${fmtPct(visitedGain)}, relax ${fmtPct(relaxGain)}`
+    );
+  } catch (err) {
+    setStatus(`Error: ${err?.message || String(err)}`);
+  }
 });
 
 document.getElementById("clearBtn").addEventListener("click", clearAll);
+
+// initial hint
+clearAll();

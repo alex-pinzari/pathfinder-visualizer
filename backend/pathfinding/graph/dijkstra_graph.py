@@ -1,40 +1,35 @@
 # backend/pathfinding/dijkstra_graph.py
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
 import heapq
+from typing import Dict, List, Tuple
 
 from pathfinding.osm.graph_adapter import OSMGraphAdapter, NodeId
-
-
-def reconstruct_path_nodes(came_from: Dict[NodeId, NodeId], start: NodeId, goal: NodeId) -> List[NodeId]:
-    if start == goal:
-        return [start]
-    if goal not in came_from:
-        return []
-
-    cur = goal
-    path = [cur]
-    while cur != start:
-        cur = came_from[cur]
-        path.append(cur)
-    path.reverse()
-    return path
+from pathfinding.utils import reconstruct_path_nodes
 
 
 def dijkstra_graph(
     adapter: OSMGraphAdapter,
     start: NodeId,
     goal: NodeId
-) -> Tuple[List[NodeId], List[NodeId], float, Dict[NodeId, NodeId], List[Tuple[NodeId, NodeId]]]:
+) -> Tuple[
+    List[NodeId],                 # path_nodes
+    List[NodeId],                 # visited_order
+    float,                        # distance_m
+    bool,                         # found
+    Dict[NodeId, NodeId],         # came_from
+    List[Tuple[NodeId, NodeId]]   # explored_edges
+]:
     """
     Returns:
-      (path_nodes, visited_order, distance_m, came_from, explored_edges)
+      (path_nodes, visited_order, distance_m, found, came_from, explored_edges)
 
-    visited_order   = nodes finalized/popped (no duplicates)
-    explored_edges  = list of (u, v) edges that actually improved dist[v] (relaxations)
-                    = good proxy for "roads explored" (in chronological order)
+    visited_order  = nodes finalized/popped (no duplicates)
+    explored_edges = list of (u, v) edges that improved dist[v] (relaxations)
     """
+    if start == goal:
+        return [start], [start], 0.0, True, {}, []
+
     dist: Dict[NodeId, float] = {start: 0.0}
     came_from: Dict[NodeId, NodeId] = {}
     visited_order: List[NodeId] = []
@@ -43,18 +38,18 @@ def dijkstra_graph(
     pq: List[Tuple[float, NodeId]] = []
     heapq.heappush(pq, (0.0, start))
 
-    processed = set()
+    visited_set = set()
 
     while pq:
         current_dist, u = heapq.heappop(pq)
 
-        # skip stale entries
-        if current_dist != dist.get(u, None):
+        # Skip stale heap entries (avoid float equality traps)
+        if current_dist > dist.get(u, float("inf")):
             continue
 
-        if u in processed:
+        if u in visited_set:
             continue
-        processed.add(u)
+        visited_set.add(u)
         visited_order.append(u)
 
         if u == goal:
@@ -65,8 +60,11 @@ def dijkstra_graph(
             if new_dist < dist.get(v, float("inf")):
                 dist[v] = new_dist
                 came_from[v] = u
-                explored_edges.append((u, v))  # <-- this is what we will draw as explored roads
-                heapq.heappush(pq, (new_dist, v))
+                explored_edges.append((u, v))
+                heapq.heappush(pq, (float(new_dist), v))
 
+    distance_m = dist.get(goal, float("inf"))
+    found = distance_m != float("inf")
     path_nodes = reconstruct_path_nodes(came_from, start, goal)
-    return path_nodes, visited_order, dist.get(goal, float("inf")), came_from, explored_edges
+
+    return path_nodes, visited_order, distance_m, found, came_from, explored_edges

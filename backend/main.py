@@ -1,3 +1,6 @@
+# backend/main.py
+from __future__ import annotations
+
 from flask import Flask, jsonify, request, send_from_directory
 from pathlib import Path
 import traceback
@@ -26,7 +29,7 @@ def health():
 
 
 # ---------------------------
-# GRID ENDPOINTS (existing)
+# GRID ENDPOINTS (legacy/demo)
 # ---------------------------
 
 @app.post("/solve/dijkstra")
@@ -187,24 +190,37 @@ def solve_compare():
         return jsonify({"error": str(e), "traceback": tb}), 500
 
 
+# ---------------------------
+# OSM ROUTING (real-world)
+# ---------------------------
+
 @app.post("/osm/route/compare")
 def osm_route_compare():
-    data = request.get_json(silent=True) or {}
-    place = data.get("place", "Delft, Netherlands")
-    network = data.get("network", "drive")
+    try:
+        data = request.get_json(silent=True) or {}
+        place = data.get("place", "Delft, Netherlands")
+        network = data.get("network", "drive")
 
-    start = data.get("start")  # [lat, lon]
-    goal = data.get("goal")    # [lat, lon]
-    if not (isinstance(start, list) and len(start) == 2 and isinstance(goal, list) and len(goal) == 2):
-        return jsonify({"error": "Expected start and goal as [lat, lon]"}), 400
+        start = data.get("start")  # [lat, lon]
+        goal = data.get("goal")    # [lat, lon]
+        if not (isinstance(start, list) and len(start) == 2 and isinstance(goal, list) and len(goal) == 2):
+            return jsonify({"error": "Expected start and goal as [lat, lon]"}), 400
 
-    G = get_graph(place, network)
+        G = get_graph(place, network)
 
-    # ✅ THIS is the important part: use YOUR compare function (path + visited + metrics)
-    res = route_compare_own(G, start[0], start[1], goal[0], goal[1])
-    res["meta"] = {"place": place, "network": network}
+        res = route_compare_own(G, start[0], start[1], goal[0], goal[1])
 
-    return jsonify(res)
+        # Merge meta rather than overwrite it
+        meta = res.get("meta", {})
+        meta.update({"place": place, "network": network})
+        res["meta"] = meta
+
+        return jsonify(res)
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb, flush=True)
+        return jsonify({"error": str(e), "traceback": tb}), 500
 
 
 if __name__ == "__main__":
