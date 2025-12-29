@@ -6,7 +6,7 @@ import {
   clearVisitedAndPath,
 } from "./map.js";
 
-import { solveDijkstra, solveAstar, solveCompare } from "./api.js";
+import { solveDijkstra, solveAstar, solveCompare } from "../shared/api.js";
 import { animateVisitedThenPath, getSpeedMs } from "./animation.js";
 
 // ====== CONFIG ======
