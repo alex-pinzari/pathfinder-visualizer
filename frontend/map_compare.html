@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OSM Side-by-Side Compare</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+
+    #topbar{
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px 14px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #ddd;
+      align-items: center;
+      background: #fff;
+    }
+
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #controls b { margin-right: 6px; }
+
+    input[type="text"], input#place { padding: 6px 8px; width: 260px; }
+    select { padding: 6px 8px; }
+    button { padding: 6px 10px; cursor: pointer; }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+
+    .toggle input[type="range"] {
+      width: 180px;
+    }
+
+    #metrics {
+      text-align: right;
+      font-size: 14px;
+      opacity: 0.9;
+      white-space: nowrap;
+    }
+
+    #subbar{
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    .algTitle{
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    #wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: calc(100vh - 86px);
+      background: #111;   /* divider background */
+      gap: 6px;          /* divider thickness */
+    }
+
+    .pane { background: #fff; position: relative; }
+    #mapLeft, #mapRight { height: 100%; }
+  </style>
+</head>
+
+<body>
+  <div id="topbar">
+    <div id="controls">
+      <b>Side-by-Side Compare</b>
+
+      <input id="place" value="Milan, Italy" />
+
+      <label class="toggle" title="Draw the visited/explored nodes">
+        <input id="showVisited" type="checkbox" checked />
+        Show exploration
+      </label>
+
+      <label class="toggle" title="Higher = faster animation">
+        Speed
+        <input id="speed" type="range" min="200" max="6000" value="2500" step="200">
+      </label>
+
+      <button id="compareBtn">Compare</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+
+    <div id="metrics">Click either map: start, then goal.</div>
+
+    <div id="subbar">
+      <div><span class="algTitle">Dijkstra</span> (left)</div>
+      <div style="text-align:right;"><span class="algTitle">A*</span> (right)</div>
+    </div>
+  </div>
+
+  <div id="wrap">
+    <div class="pane">
+      <div id="mapLeft"></div>
+    </div>
+    <div class="pane">
+      <div id="mapRight"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/osm/map_compare.js"></script>
+</body>
+</html>
